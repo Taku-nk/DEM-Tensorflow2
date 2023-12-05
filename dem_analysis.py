@@ -4,12 +4,60 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import tensorflow as tf
 
 sys.path.append("/home/nakagawa/mylib/PythonCode/visualize_2D")
 from visualize_DEM_2D import Visualize2DFormat as VizFormat
 
 
 from utils.data_classes import InputData
+
+
+class LayerDNN(tf.keras.layers.Layer):
+    def __init__(self, dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20]):
+        super().__init__()
+
+        self.hidden_layers = []
+        for l in dnn_layers:
+            dense_layer = tf.keras.layers.Dense(l, activation=None, use_bias=True)
+            self.hidden_layers.append(dense_layer)
+        self.dnn_out_layer = tf.keras.layers.Dense(dnn_out, activation=None, use_bias=True)
+
+
+    def call(self, X):
+        """
+        Args:
+            X: tf.tensor. Shape=(batch, training_points, 2). Batch is usually 1.
+        """
+        temp = X
+        for l in self.hidden_layers:
+            temp = l(temp)
+            temp = tf.nn.relu(temp) **2
+
+        dnn_out = self.dnn_out_layer(temp)
+
+        return dnn_out
+
+
+class ModelXtoDisp(tf.keras.Model):
+    def __init__(self, dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20]):
+        super().__init__()
+        self.dnn = LayerDNN(dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20])
+
+    def call(self, X):
+        dnn_out = self.dnn(X)
+
+        x, y = X[:, :, 0:1], X[:, :, 1:2]
+
+        u =  x * dnn_out[:, :, 0:1]
+        v =  (y + 1.0) * dnn_out[:, :, 1:2]
+
+        return u, v
+
+    
+
+
+
 
 
 
@@ -25,7 +73,19 @@ if __name__=='__main__':
 
     model_data = input_data.get_data() # dictionary basic shape (1, :, 1) or (1, :, 2)
 
+    model_x_to_disp = ModelXtoDisp(dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20])
 
+
+    Input = tf.keras.Input(shape=(None,2)) # Determin the input shape
+    model_x_to_disp(Input) # Build model (# initialize the shape)
+    model_x_to_disp.summary() 
+
+
+    # prediction before training
+    pred = model_x_to_disp(model_data['X_int'])
+    print(pred[0].shape)
+    
+    quit()
 
 
 
