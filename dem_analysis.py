@@ -23,7 +23,6 @@ class LayerDNN(tf.keras.layers.Layer):
             self.hidden_layers.append(dense_layer)
         self.dnn_out_layer = tf.keras.layers.Dense(dnn_out, activation=None, use_bias=True)
 
-
     def call(self, X):
         """
         Args:
