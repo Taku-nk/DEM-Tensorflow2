@@ -182,6 +182,31 @@ class ModelXToResult(tf.keras.Model):
         } 
 
 
+class ModelDEM(tf.keras.Model):
+    def __init__(self, model_x_to_result):
+        super(ModelDEM, self).__init__()
+        self.model_x_to_result = model_x_to_result
+
+    
+    def call(self, X_int, wt_int, X_bnd, wt_bnd, Trac_bnd):
+        result_int = self.model_x_to_result(X_int)
+        result_bnd = self.model_x_to_result(X_bnd)
+
+        trac_x = Trac_bnd[:, :, 0:1]
+        trac_y = Trac_bnd[:, :, 1:2]
+
+
+        int_energy = tf.reduce_sum(result_int['strain_energy_density'] * wt_int) # scalar no batch.
+        ext_energy = tf.reduce_sum((result_bnd['disp_x'] * trac_x + result_bnd['disp_y'] * trac_y) * wt_bnd)
+        total_energy = int_energy - ext_energy
+
+
+        return {
+            'internal_energy': int_energy,
+            'external_energy': ext_energy,
+            'total_energy': total_energy,
+        }
+
 
 
 
@@ -205,14 +230,40 @@ if __name__=='__main__':
 
 
     Input = tf.keras.Input(shape=(None,2)) # Determin the input shape
-    model_x_to_result(Input) # Build model (# initialize the shape)
-    model_x_to_result.summary() 
+    # model_x_to_result(Input) # Build model (# initialize the shape)
+    # model_x_to_result.summary() 
+
 
 
     # prediction before training
-    pred = model_x_to_result(model_data['X_int'])
-    print(pred['stress_x'].shape)
-    # quit()
+    # pred = model_x_to_result(model_data['X_int'])
+    # print(pred['stress_x'].shape)
+
+    model_dem = ModelDEM(model_x_to_result)
+    # build
+    model_dem(
+        X_int = tf.keras.Input(shape=(None, 2)),
+        wt_int = tf.keras.Input(shape=(None, 1)),
+        X_bnd = tf.keras.Input(shape=(None, 2)),
+        wt_bnd = tf.keras.Input(shape=(None, 1)),
+        Trac_bnd = tf.keras.Input(shape=(None, 2)),
+    )
+    model_dem.summary()
+    pred_energy = model_dem(
+        X_int    = model_data['X_int'],
+        wt_int   = model_data['wt_int'],
+        X_bnd    = model_data['X_bnd'],
+        wt_bnd   = model_data['wt_bnd'],
+        Trac_bnd = model_data['Trac_bnd']
+    )
+    print(pred_energy['internal_energy'])
+    print(pred_energy['external_energy'])
+    print(pred_energy['total_energy'])
+    loss = pred_energy['total_energy']
+    
+
+
+    quit()
     
     val = pred['stress_x'][0, :, 0]
 
