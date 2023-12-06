@@ -73,6 +73,8 @@ class InputData:
                 'X_bnd'   : np.ndarray. Shape = (1, :, 2). Neumann boundary training point location x and y.
                 'wt_bnd'  : np.ndarray. Shape = (1, :, 1). Neumann boundary training point weight (length).
                 'Trac_bnd': np.ndarray. Shape = (1, :, 2). Neumann boundary traction vector. (N/m^2)
+                
+            validation_data_dict:
                 'X_val'   : np.ndarray. Shape = (1, :, 2). Internal validation point location x and
                 'wt_val'  : np.ndarray. Shape = (1, :, 1). Internal validation point weight (area).
 
@@ -96,9 +98,12 @@ class InputData:
                 'X_bnd'   :    X_bnd[np.newaxis, :, :],
                 'wt_bnd'  :   wt_bnd[np.newaxis, :, :],
                 'Trac_bnd': Trac_bnd[np.newaxis, :, :],
+            }
+        validation_data_dict = {
                 'X_val'   :    X_val[np.newaxis, :, :],
                 'wt_val'  :   wt_val[np.newaxis, :, :],
-            }
+        }
 
-        return input_data_dict
+
+        return input_data_dict, validation_data_dict
 

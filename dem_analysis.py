@@ -192,8 +192,8 @@ class ModelDEM(tf.keras.Model):
         result_int = self.model_x_to_result(X_int)
         result_bnd = self.model_x_to_result(X_bnd)
 
-        trac_x = Trac_bnd[:, :, 0:1]
-        trac_y = Trac_bnd[:, :, 1:2]
+        trac_x = Trac_bnd[:, :, 0:1] # traction vector x component
+        trac_y = Trac_bnd[:, :, 1:2] # traction vector y component
 
 
         int_energy = tf.reduce_sum(result_int['strain_energy_density'] * wt_int) # scalar no batch.
@@ -208,8 +208,12 @@ class ModelDEM(tf.keras.Model):
         }
 
 
+class LossDEM(tf.keras.losses.Loss):
+    def call(self, y_true, y_pred):
+        return y_pred
 
 
+ 
 
 
 if __name__=='__main__':
@@ -222,7 +226,7 @@ if __name__=='__main__':
         validation_point           = data_dir/"input/validation_point_and_weight.csv"
     )
 
-    model_data = input_data.get_data() # dictionary basic shape (1, :, 1) or (1, :, 2)
+    input_data, validation_data = input_data.get_data() # dictionary basic shape (1, :, 1) or (1, :, 2)
 
     # model_x_to_disp = ModelXtoDisp(dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20])
     layer_x_to_disp = LayerXtoDisp(dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20])
@@ -250,17 +254,29 @@ if __name__=='__main__':
     )
     model_dem.summary()
     pred_energy = model_dem(
-        X_int    = model_data['X_int'],
-        wt_int   = model_data['wt_int'],
-        X_bnd    = model_data['X_bnd'],
-        wt_bnd   = model_data['wt_bnd'],
-        Trac_bnd = model_data['Trac_bnd']
+        X_int    = input_data['X_int'],
+        wt_int   = input_data['wt_int'],
+        X_bnd    = input_data['X_bnd'],
+        wt_bnd   = input_data['wt_bnd'],
+        Trac_bnd = input_data['Trac_bnd']
     )
-    print(pred_energy['internal_energy'])
-    print(pred_energy['external_energy'])
-    print(pred_energy['total_energy'])
-    loss = pred_energy['total_energy']
+    # print(pred_energy['internal_energy'])
+    # print(pred_energy['external_energy'])
+    # print(pred_energy['total_energy'])
+    total_energy = pred_energy['total_energy']
+
+    loss_obj = LossDEM()
+    dummy_label = np.array(0.0, dtype=np.float32)
+
+    optimizer = tf.keras.optimizers.Adam()
     
+
+    model_dem.compile(
+        optimizer=optimizer,
+        loss=loss_obj,
+    )
+    # model_dem.fit(input_data, dummy_label)
+    # model
 
 
     quit()
@@ -329,8 +345,8 @@ if __name__=='__main__':
 
 
 
-    xs  = model_data['X_int'][0, :, 0]
-    ys  = model_data['X_int'][0, :, 1]
+    xs  = input_data['X_int'][0, :, 0]
+    ys  = input_data['X_int'][0, :, 1]
     # val = model_data['X_int'][0, :, 0]
 
     viz_format.plot_mesh(xs, ys, val, contour_num=40, contour_line = False, cmap='turbo')
