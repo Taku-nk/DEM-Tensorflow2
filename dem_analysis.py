@@ -188,7 +188,16 @@ class ModelDEM(tf.keras.Model):
         self.model_x_to_result = model_x_to_result
 
     
-    def call(self, X_int, wt_int, X_bnd, wt_bnd, Trac_bnd):
+    # def call(self, X_int, wt_int, X_bnd, wt_bnd, Trac_bnd):
+    def call(self, inputs):
+        X_int    = inputs['X_int']
+        wt_int   = inputs['wt_int']
+        X_bnd    = inputs['X_bnd']
+        wt_bnd   = inputs['wt_bnd']
+        Trac_bnd = inputs['Trac_bnd']
+
+
+
         result_int = self.model_x_to_result(X_int)
         result_bnd = self.model_x_to_result(X_bnd)
 
@@ -233,7 +242,7 @@ if __name__=='__main__':
     model_x_to_result = ModelXToResult(layer_x_to_disp)
 
 
-    Input = tf.keras.Input(shape=(None,2)) # Determin the input shape
+    # Input = tf.keras.Input(shape=(None,2)) # Determin the input shape
     # model_x_to_result(Input) # Build model (# initialize the shape)
     # model_x_to_result.summary() 
 
@@ -245,26 +254,33 @@ if __name__=='__main__':
 
     model_dem = ModelDEM(model_x_to_result)
     # build
-    model_dem(
-        X_int = tf.keras.Input(shape=(None, 2)),
-        wt_int = tf.keras.Input(shape=(None, 1)),
-        X_bnd = tf.keras.Input(shape=(None, 2)),
-        wt_bnd = tf.keras.Input(shape=(None, 1)),
-        Trac_bnd = tf.keras.Input(shape=(None, 2)),
-    )
+    model_dem({
+        'X_int'    : tf.keras.Input(shape=(None, 2)),
+        'wt_int'   : tf.keras.Input(shape=(None, 1)),
+        'X_bnd'    : tf.keras.Input(shape=(None, 2)),
+        'wt_bnd'   : tf.keras.Input(shape=(None, 1)),
+        'Trac_bnd' : tf.keras.Input(shape=(None, 2)),
+    })
+    # model_dem(
+    #     X_int = tf.keras.Input(shape=(None, 2)),
+    #     wt_int = tf.keras.Input(shape=(None, 1)),
+    #     X_bnd = tf.keras.Input(shape=(None, 2)),
+    #     wt_bnd = tf.keras.Input(shape=(None, 1)),
+    #     Trac_bnd = tf.keras.Input(shape=(None, 2)),
+    # )    
     model_dem.summary()
-    pred_energy = model_dem(
-        X_int    = input_data['X_int'],
-        wt_int   = input_data['wt_int'],
-        X_bnd    = input_data['X_bnd'],
-        wt_bnd   = input_data['wt_bnd'],
-        Trac_bnd = input_data['Trac_bnd']
-    )
+    pred_energy = model_dem(input_data)
+    # pred_energy = model_dem(
+    #     X_int    = input_data['X_int'],
+    #     wt_int   = input_data['wt_int'],
+    #     X_bnd    = input_data['X_bnd'],
+    #     wt_bnd   = input_data['wt_bnd'],
+    #     Trac_bnd = input_data['Trac_bnd']
+    # )
     # print(pred_energy['internal_energy'])
     # print(pred_energy['external_energy'])
     # print(pred_energy['total_energy'])
     total_energy = pred_energy['total_energy']
-
     loss_obj = LossDEM()
     dummy_label = np.array(0.0, dtype=np.float32)
 
@@ -273,11 +289,41 @@ if __name__=='__main__':
 
     model_dem.compile(
         optimizer=optimizer,
-        loss=loss_obj,
+        loss=loss_obj
     )
     # model_dem.fit(input_data, dummy_label)
-    # model
 
+    @tf.function
+    def train_step(input_data):
+        with tf.GradientTape() as tape:
+            # training=True is only needed if there are layers with different
+            # behavior during training versus inference (e.g. Dropout).
+            pred = model_dem(input_data, training=True)
+            loss = loss_obj(dummy_label, pred['total_energy'])
+        gradients = tape.gradient(loss, model_dem.trainable_variables)
+        optimizer.apply_gradients(zip(gradients, model_dem.trainable_variables))
+
+
+    # model
+    #---------------------------------------------------------------------------
+    # Train loop
+    #---------------------------------------------------------------------------
+    EPOCHS = 1000
+    loss_history = []
+
+
+    for epoch in range(EPOCHS):
+        # Reset the metrics at the start of the next epoch
+        # train_loss.reset_states()
+        # train_accuracy.reset_states()
+
+        train_step(input_data)
+        
+        pred = model_dem.predict(input_data)
+        loss_history.append({'i':epoch+1, 'loss':pred['total_energy'], 'id':0}) # 0 means adam, 1 means lbfgs
+
+        if epoch % 10 == 0:
+            print(f"Iter {epoch}: total_loss = {pred['total_energy']}, int = {pred['internal_energy']}, ext = {pred['external_energy']}")
 
     quit()
     
