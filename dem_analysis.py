@@ -19,9 +19,6 @@ from sample_result import ResultSampler
 
 
 
-
-
-
 @tf.function
 def segment_adf(x1, y1, x2, y2, x, y):
     """Generate approximate distance function tensor graph (ADF) for given segment.
@@ -96,20 +93,10 @@ if __name__=='__main__':
 
     input_data, validation_data = input_data_obj.get_data() # dictionary basic shape (1, :, 1) or (1, :, 2)
 
-    # model_x_to_disp = ModelXtoDisp(dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20])
     layer_x_to_disp = LayerXtoDisp(dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20])
     model_x_to_result = ModelXToResult(layer_x_to_disp)
 
 
-    # Input = tf.keras.Input(shape=(None,2)) # Determin the input shape
-    # model_x_to_result(Input) # Build model (# initialize the shape)
-    # model_x_to_result.summary() 
-
-
-
-    # prediction before training
-    # pred = model_x_to_result(model_data['X_int'])
-    # print(pred['stress_x'].shape)
 
     model_dem = ModelDEM(model_x_to_result)
     # build
@@ -122,8 +109,6 @@ if __name__=='__main__':
     })
   
     model_dem.summary()
-    # pred_energy = model_dem(input_data) # predict 'total_energy', 'internal_energy', 'external_energy'
-    # total_energy = pred_energy['total_energy']
 
 
     loss_obj = LossDEM()
