@@ -232,14 +232,14 @@ class LossDEM(tf.keras.losses.Loss):
 if __name__=='__main__':
     data_dir = Path('./data')
 
-    input_data = InputData(
+    input_data_obj = InputData(
         internal_training_point    = data_dir/"input/internal_point_and_weight.csv",
         BC_Neumann_training_point  = data_dir/"input/Neumann_BC_point_and_weight.csv",
         BC_Neumann_traction_vector = data_dir/"input/Neumann_BC_traction_vector.csv",
         validation_point           = data_dir/"input/validation_point_and_weight.csv"
     )
 
-    input_data, validation_data = input_data.get_data() # dictionary basic shape (1, :, 1) or (1, :, 2)
+    input_data, validation_data = input_data_obj.get_data() # dictionary basic shape (1, :, 1) or (1, :, 2)
 
     # model_x_to_disp = ModelXtoDisp(dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20])
     layer_x_to_disp = LayerXtoDisp(dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20])
@@ -265,40 +265,25 @@ if __name__=='__main__':
         'wt_bnd'   : tf.keras.Input(shape=(None, 1)),
         'Trac_bnd' : tf.keras.Input(shape=(None, 2)),
     })
-    # model_dem(
-    #     X_int = tf.keras.Input(shape=(None, 2)),
-    #     wt_int = tf.keras.Input(shape=(None, 1)),
-    #     X_bnd = tf.keras.Input(shape=(None, 2)),
-    #     wt_bnd = tf.keras.Input(shape=(None, 1)),
-    #     Trac_bnd = tf.keras.Input(shape=(None, 2)),
-    # )    
+  
     model_dem.summary()
-    pred_energy = model_dem(input_data)
-    # pred_energy = model_dem(
-    #     X_int    = input_data['X_int'],
-    #     wt_int   = input_data['wt_int'],
-    #     X_bnd    = input_data['X_bnd'],
-    #     wt_bnd   = input_data['wt_bnd'],
-    #     Trac_bnd = input_data['Trac_bnd']
-    # )
-    # print(pred_energy['internal_energy'])
-    # print(pred_energy['external_energy'])
-    # print(pred_energy['total_energy'])
-    total_energy = pred_energy['total_energy']
-    loss_obj = LossDEM()
-    dummy_label = np.array(0.0, dtype=np.float32)
+    # pred_energy = model_dem(input_data) # predict 'total_energy', 'internal_energy', 'external_energy'
+    # total_energy = pred_energy['total_energy']
 
-    optimizer = tf.keras.optimizers.Adam()
+
+    loss_obj = LossDEM()
+
     
+    optimizer = tf.keras.optimizers.Adam()
 
     model_dem.compile(
         optimizer=optimizer,
         loss=loss_obj
     )
-    # model_dem.fit(input_data, dummy_label)
 
     @tf.function
     def train_step(input_data):
+        dummy_label = np.array(0.0, dtype=np.float32)
         with tf.GradientTape() as tape:
             # training=True is only needed if there are layers with different
             # behavior during training versus inference (e.g. Dropout).
@@ -346,7 +331,7 @@ if __name__=='__main__':
         'stress_xy': validation['stress_xy'][0, :, 0].flatten(),
     })
     sampler.save_original(data_dir/'output/dem_result.csv')
-    
+
     print("finished")
 
     quit()
