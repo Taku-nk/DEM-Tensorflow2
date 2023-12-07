@@ -5,9 +5,13 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import tensorflow as tf
-
+from loss_utils import loss_history_to_csv
 sys.path.append("/home/nakagawa/mylib/PythonCode/visualize_2D")
 from visualize_DEM_2D import Visualize2DFormat as VizFormat
+
+sys.path.append(
+    "/home/nakagawa/mylib/PythonCode/ReadAnsysResult")
+from sample_result import ResultSampler
 
 
 from utils.data_classes import InputData
@@ -308,7 +312,7 @@ if __name__=='__main__':
     #---------------------------------------------------------------------------
     # Train loop
     #---------------------------------------------------------------------------
-    EPOCHS = 1000
+    EPOCHS = 250
     loss_history = []
 
 
@@ -325,10 +329,27 @@ if __name__=='__main__':
         if epoch % 10 == 0:
             print(f"Iter {epoch}: total_loss = {pred['total_energy']}, int = {pred['internal_energy']}, ext = {pred['external_energy']}")
 
-    quit()
-    
-    val = pred['stress_x'][0, :, 0]
 
+    loss_history_to_csv(loss_history=loss_history, save_path=data_dir/'output/loss.csv')
+
+    validation = model_x_to_result.predict(validation_data['X_val'])
+
+    sampler = ResultSampler()
+    sampler.load_numpy_result(
+    validation_data['X_val'][0, :, 0], 
+    validation_data['X_val'][0, :, 1], 
+    value_dict={
+        'disp_x'   : validation['disp_x'][0, :, 0].flatten(),
+        'disp_y'   : validation['disp_y'][0, :, 0].flatten(),
+        'stress_x' : validation['stress_x'][0, :, 0].flatten(),
+        'stress_y' : validation['stress_y'][0, :, 0].flatten(),
+        'stress_xy': validation['stress_xy'][0, :, 0].flatten(),
+    })
+    sampler.save_original(data_dir/'output/dem_result.csv')
+    
+    print("finished")
+
+    quit()
 
 
 
