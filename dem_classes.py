@@ -1,4 +1,7 @@
 import tensorflow as tf
+from loss_utils import loss_history_to_csv
+import numpy as np
+
 
 class LayerDNN(tf.keras.layers.Layer):
     def __init__(self, dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20]):
@@ -142,3 +145,99 @@ class ModelDEM(tf.keras.Model):
 class LossDEM(tf.keras.losses.Loss):
     def call(self, y_true, y_pred):
         return y_pred
+    
+
+
+
+class AnalysisDEM:
+    """This is the top most DEM analysis class
+    """
+    def __init__(self, layer_x_to_disp, E=1.0, nu=0.3):
+        self.model_x_to_result = ModelXToResult(layer_x_to_disp, E=E, nu=nu)
+        self.model_dem = ModelDEM(self.model_x_to_result)
+        self._build_dem()
+    
+        self.loss_obj = LossDEM()
+        self.optimizer = tf.keras.optimizers.Adam()
+
+        self.loss_history = []
+
+
+    def train(self, input_data, epochs=1):
+        """Train the model_dem
+        """
+        self.model_dem.compile(
+        optimizer=self.optimizer,
+        loss=self.loss_obj
+        )
+
+        for epoch in range(epochs):
+            # Reset the metrics at the start of the next epoch
+            # train_loss.reset_states()
+            # train_accuracy.reset_states()
+
+            self._train_step(input_data)
+            
+            pred_energy = self.model_dem.predict(input_data)
+            self.loss_history.append({'i':epoch+1, 'loss':pred_energy['total_energy'], 'id':0}) # 0 means adam, 1 means lbfgs
+
+            if epoch % 10 == 0:
+                print(f"Iter {epoch}: total_loss = {pred_energy['total_energy']}, int = {pred_energy['internal_energy']}, ext = {pred_energy['external_energy']}")
+                
+        return
+    
+
+    def save_history(self, save_path):
+        """Save result
+        Args:
+            save_dir: Pathlib path. In this path the the result will be saved.
+        """
+        loss_history_to_csv(loss_history=self.loss_history, save_path=save_path)
+
+        return
+    
+
+    def predict(self, X):
+        """Predict the result.
+        Args:
+            X: np.ndarray. Shape=(1, :, 2)
+        Returns:
+            result_dict: dict. The result contains the following.
+            {   
+                'disp_x': shape=(1, :, 1),
+                'disp_y': shape=(1, :, 1),
+                'stress_x': shape=(1, :, 1),
+                'stress_y': shape=(1, :, 1),
+                'stress_xy': shape=(1, :, 1),
+                'strain_energy_density': shape=(1, :, 1)
+            }
+        """
+        return self.model_x_to_result.predict(X)
+
+
+
+
+
+    def _build_dem(self):
+        self.model_dem({
+        'X_int'    : tf.keras.Input(shape=(None, 2)),
+        'wt_int'   : tf.keras.Input(shape=(None, 1)),
+        'X_bnd'    : tf.keras.Input(shape=(None, 2)),
+        'wt_bnd'   : tf.keras.Input(shape=(None, 1)),
+        'Trac_bnd' : tf.keras.Input(shape=(None, 2)),
+        })
+        self.model_dem.summary()
+        return
+  
+
+    @tf.function
+    def _train_step(self, input_data):
+        dummy_label = np.array(0.0, dtype=np.float32)
+        with tf.GradientTape() as tape:
+            # training=True is only needed if there are layers with different
+            # behavior during training versus inference (e.g. Dropout).
+            pred_energy = self.model_dem(input_data, training=True)
+            loss = self.loss_obj(dummy_label, pred_energy['total_energy'])
+        gradients = tape.gradient(loss, self.model_dem.trainable_variables)
+        self.optimizer.apply_gradients(zip(gradients, self.model_dem.trainable_variables))
+        return

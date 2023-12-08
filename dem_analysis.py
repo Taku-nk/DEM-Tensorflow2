@@ -7,7 +7,7 @@ import tensorflow as tf
 
 from loss_utils import loss_history_to_csv
 from utils.data_classes import InputData
-from dem_classes import LayerDNN, ModelXToResult, ModelDEM, LossDEM
+from dem_classes import LayerDNN, ModelXToResult, ModelDEM, LossDEM, AnalysisDEM
 
 
 sys.path.append("/home/nakagawa/mylib/PythonCode/visualize_2D")
@@ -81,6 +81,7 @@ class LayerXtoDisp(tf.keras.layers.Layer):
 
 
 
+
 if __name__=='__main__':
     data_dir = Path('./data')
 
@@ -94,70 +95,14 @@ if __name__=='__main__':
     input_data, validation_data = input_data_obj.get_data() # dictionary basic shape (1, :, 1) or (1, :, 2)
 
     layer_x_to_disp = LayerXtoDisp(dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20])
-    model_x_to_result = ModelXToResult(layer_x_to_disp)
+
+    analysis_dem = AnalysisDEM(layer_x_to_disp, E=1.0, nu=0.3)
+    analysis_dem.train(input_data=input_data, epochs=250)
+
+    analysis_dem.save_history(save_path=data_dir/'output/loss.csv')
 
 
-
-    model_dem = ModelDEM(model_x_to_result)
-    # build
-    model_dem({
-        'X_int'    : tf.keras.Input(shape=(None, 2)),
-        'wt_int'   : tf.keras.Input(shape=(None, 1)),
-        'X_bnd'    : tf.keras.Input(shape=(None, 2)),
-        'wt_bnd'   : tf.keras.Input(shape=(None, 1)),
-        'Trac_bnd' : tf.keras.Input(shape=(None, 2)),
-    })
-  
-    model_dem.summary()
-
-
-    loss_obj = LossDEM()
-
-    
-    optimizer = tf.keras.optimizers.Adam()
-
-    model_dem.compile(
-        optimizer=optimizer,
-        loss=loss_obj
-    )
-
-    @tf.function
-    def train_step(input_data):
-        dummy_label = np.array(0.0, dtype=np.float32)
-        with tf.GradientTape() as tape:
-            # training=True is only needed if there are layers with different
-            # behavior during training versus inference (e.g. Dropout).
-            pred = model_dem(input_data, training=True)
-            loss = loss_obj(dummy_label, pred['total_energy'])
-        gradients = tape.gradient(loss, model_dem.trainable_variables)
-        optimizer.apply_gradients(zip(gradients, model_dem.trainable_variables))
-
-
-    # model
-    #---------------------------------------------------------------------------
-    # Train loop
-    #---------------------------------------------------------------------------
-    EPOCHS = 250
-    loss_history = []
-
-
-    for epoch in range(EPOCHS):
-        # Reset the metrics at the start of the next epoch
-        # train_loss.reset_states()
-        # train_accuracy.reset_states()
-
-        train_step(input_data)
-        
-        pred = model_dem.predict(input_data)
-        loss_history.append({'i':epoch+1, 'loss':pred['total_energy'], 'id':0}) # 0 means adam, 1 means lbfgs
-
-        if epoch % 10 == 0:
-            print(f"Iter {epoch}: total_loss = {pred['total_energy']}, int = {pred['internal_energy']}, ext = {pred['external_energy']}")
-
-
-    loss_history_to_csv(loss_history=loss_history, save_path=data_dir/'output/loss.csv')
-
-    validation = model_x_to_result.predict(validation_data['X_val'])
+    validation = analysis_dem.predict(validation_data['X_val'])
 
     sampler = ResultSampler()
     sampler.load_numpy_result(
@@ -175,6 +120,88 @@ if __name__=='__main__':
     print("finished")
 
     quit()
+
+    # model_x_to_result = ModelXToResult(layer_x_to_disp)
+
+
+
+    # model_dem = ModelDEM(model_x_to_result)
+    # # build
+    # model_dem({
+    #     'X_int'    : tf.keras.Input(shape=(None, 2)),
+    #     'wt_int'   : tf.keras.Input(shape=(None, 1)),
+    #     'X_bnd'    : tf.keras.Input(shape=(None, 2)),
+    #     'wt_bnd'   : tf.keras.Input(shape=(None, 1)),
+    #     'Trac_bnd' : tf.keras.Input(shape=(None, 2)),
+    # })
+  
+    # model_dem.summary()
+
+
+    # loss_obj = LossDEM()
+
+    
+    # optimizer = tf.keras.optimizers.Adam()
+
+    # model_dem.compile(
+    #     optimizer=optimizer,
+    #     loss=loss_obj
+    # )
+
+    # @tf.function
+    # def train_step(input_data):
+    #     dummy_label = np.array(0.0, dtype=np.float32)
+    #     with tf.GradientTape() as tape:
+    #         # training=True is only needed if there are layers with different
+    #         # behavior during training versus inference (e.g. Dropout).
+    #         pred = model_dem(input_data, training=True)
+    #         loss = loss_obj(dummy_label, pred['total_energy'])
+    #     gradients = tape.gradient(loss, model_dem.trainable_variables)
+    #     optimizer.apply_gradients(zip(gradients, model_dem.trainable_variables))
+
+
+    # # model
+    # #---------------------------------------------------------------------------
+    # # Train loop
+    # #---------------------------------------------------------------------------
+    # EPOCHS = 250
+    # loss_history = []
+
+
+    # for epoch in range(EPOCHS):
+    #     # Reset the metrics at the start of the next epoch
+    #     # train_loss.reset_states()
+    #     # train_accuracy.reset_states()
+
+    #     train_step(input_data)
+        
+    #     pred = model_dem.predict(input_data)
+    #     loss_history.append({'i':epoch+1, 'loss':pred['total_energy'], 'id':0}) # 0 means adam, 1 means lbfgs
+
+    #     if epoch % 10 == 0:
+    #         print(f"Iter {epoch}: total_loss = {pred['total_energy']}, int = {pred['internal_energy']}, ext = {pred['external_energy']}")
+
+
+    # loss_history_to_csv(loss_history=loss_history, save_path=data_dir/'output/loss.csv')
+
+    # validation = model_x_to_result.predict(validation_data['X_val'])
+
+    # sampler = ResultSampler()
+    # sampler.load_numpy_result(
+    # validation_data['X_val'][0, :, 0], 
+    # validation_data['X_val'][0, :, 1], 
+    # value_dict={
+    #     'disp_x'   : validation['disp_x'][0, :, 0].flatten(),
+    #     'disp_y'   : validation['disp_y'][0, :, 0].flatten(),
+    #     'stress_x' : validation['stress_x'][0, :, 0].flatten(),
+    #     'stress_y' : validation['stress_y'][0, :, 0].flatten(),
+    #     'stress_xy': validation['stress_xy'][0, :, 0].flatten(),
+    # })
+    # sampler.save_original(data_dir/'output/dem_result.csv')
+
+    # print("finished")
+
+    # quit()
 
 
 
