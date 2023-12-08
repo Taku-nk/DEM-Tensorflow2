@@ -80,9 +80,10 @@ class LayerXtoDisp(tf.keras.layers.Layer):
 
 
 
-
-
 if __name__=='__main__':
+    # --------------------------------------
+    # Prepare input
+    # --------------------------------------
     data_dir = Path('./data')
 
     input_data_obj = InputData(
@@ -94,178 +95,36 @@ if __name__=='__main__':
 
     input_data, validation_data = input_data_obj.get_data() # dictionary basic shape (1, :, 1) or (1, :, 2)
 
+    # Layer which contains DNN and preori boundary condition
     layer_x_to_disp = LayerXtoDisp(dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20])
 
+    # -------------------------------------
+    # DEM analysis
+    # -------------------------------------
     analysis_dem = AnalysisDEM(layer_x_to_disp, E=1.0, nu=0.3)
     analysis_dem.train(input_data=input_data, epochs=250)
 
     analysis_dem.save_history(save_path=data_dir/'output/loss.csv')
 
 
+
+    # --------------------------------------
+    # Validation
+    # --------------------------------------
     validation = analysis_dem.predict(validation_data['X_val'])
 
+    # Save result
     sampler = ResultSampler()
     sampler.load_numpy_result(
-    validation_data['X_val'][0, :, 0], 
-    validation_data['X_val'][0, :, 1], 
-    value_dict={
-        'disp_x'   : validation['disp_x'][0, :, 0].flatten(),
-        'disp_y'   : validation['disp_y'][0, :, 0].flatten(),
-        'stress_x' : validation['stress_x'][0, :, 0].flatten(),
-        'stress_y' : validation['stress_y'][0, :, 0].flatten(),
-        'stress_xy': validation['stress_xy'][0, :, 0].flatten(),
-    })
+        validation_data['X_val'][0, :, 0], 
+        validation_data['X_val'][0, :, 1], 
+        value_dict={
+            'disp_x'   : validation['disp_x'][0, :, 0].flatten(),
+            'disp_y'   : validation['disp_y'][0, :, 0].flatten(),
+            'stress_x' : validation['stress_x'][0, :, 0].flatten(),
+            'stress_y' : validation['stress_y'][0, :, 0].flatten(),
+            'stress_xy': validation['stress_xy'][0, :, 0].flatten(),
+        })
     sampler.save_original(data_dir/'output/dem_result.csv')
 
     print("finished")
-
-    quit()
-
-    # model_x_to_result = ModelXToResult(layer_x_to_disp)
-
-
-
-    # model_dem = ModelDEM(model_x_to_result)
-    # # build
-    # model_dem({
-    #     'X_int'    : tf.keras.Input(shape=(None, 2)),
-    #     'wt_int'   : tf.keras.Input(shape=(None, 1)),
-    #     'X_bnd'    : tf.keras.Input(shape=(None, 2)),
-    #     'wt_bnd'   : tf.keras.Input(shape=(None, 1)),
-    #     'Trac_bnd' : tf.keras.Input(shape=(None, 2)),
-    # })
-  
-    # model_dem.summary()
-
-
-    # loss_obj = LossDEM()
-
-    
-    # optimizer = tf.keras.optimizers.Adam()
-
-    # model_dem.compile(
-    #     optimizer=optimizer,
-    #     loss=loss_obj
-    # )
-
-    # @tf.function
-    # def train_step(input_data):
-    #     dummy_label = np.array(0.0, dtype=np.float32)
-    #     with tf.GradientTape() as tape:
-    #         # training=True is only needed if there are layers with different
-    #         # behavior during training versus inference (e.g. Dropout).
-    #         pred = model_dem(input_data, training=True)
-    #         loss = loss_obj(dummy_label, pred['total_energy'])
-    #     gradients = tape.gradient(loss, model_dem.trainable_variables)
-    #     optimizer.apply_gradients(zip(gradients, model_dem.trainable_variables))
-
-
-    # # model
-    # #---------------------------------------------------------------------------
-    # # Train loop
-    # #---------------------------------------------------------------------------
-    # EPOCHS = 250
-    # loss_history = []
-
-
-    # for epoch in range(EPOCHS):
-    #     # Reset the metrics at the start of the next epoch
-    #     # train_loss.reset_states()
-    #     # train_accuracy.reset_states()
-
-    #     train_step(input_data)
-        
-    #     pred = model_dem.predict(input_data)
-    #     loss_history.append({'i':epoch+1, 'loss':pred['total_energy'], 'id':0}) # 0 means adam, 1 means lbfgs
-
-    #     if epoch % 10 == 0:
-    #         print(f"Iter {epoch}: total_loss = {pred['total_energy']}, int = {pred['internal_energy']}, ext = {pred['external_energy']}")
-
-
-    # loss_history_to_csv(loss_history=loss_history, save_path=data_dir/'output/loss.csv')
-
-    # validation = model_x_to_result.predict(validation_data['X_val'])
-
-    # sampler = ResultSampler()
-    # sampler.load_numpy_result(
-    # validation_data['X_val'][0, :, 0], 
-    # validation_data['X_val'][0, :, 1], 
-    # value_dict={
-    #     'disp_x'   : validation['disp_x'][0, :, 0].flatten(),
-    #     'disp_y'   : validation['disp_y'][0, :, 0].flatten(),
-    #     'stress_x' : validation['stress_x'][0, :, 0].flatten(),
-    #     'stress_y' : validation['stress_y'][0, :, 0].flatten(),
-    #     'stress_xy': validation['stress_xy'][0, :, 0].flatten(),
-    # })
-    # sampler.save_original(data_dir/'output/dem_result.csv')
-
-    # print("finished")
-
-    # quit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # ------------------------------------------------------------------------------
-    # Script starts
-    # ------------------------------------------------------------------------------
-
-    # Format
-    #-------------------------------------------------------------------------------
-    viz_format = VizFormat(figsize = (4, 3), fontsize=12)
-
-    plt.rcParams["savefig.directory"] = "./"
-    plt.rcParams['mathtext.fontset'] = 'cm'
-    plt.rcParams['mathtext.fontset'] = 'stix'
-    # plt.rcParams['font.family'] = 'serif'
-    # plt.rcParams['font.serif'] = ['Times New Roman']
-    # plt.rcParams['font.sans-serif'] = ['Times New Roman']
-
-    viz_format.ax.set_xlabel(r"$x$")
-    viz_format.ax.set_ylabel(r"$y$")
-
-    # viz_format.ax.set_xlim(0.2, 0.4)
-    # viz_format.ax.set_ylim(0, 0.2)
-
-
-
-    xs  = input_data['X_int'][0, :, 0]
-    ys  = input_data['X_int'][0, :, 1]
-    # val = model_data['X_int'][0, :, 0]
-
-    viz_format.plot_mesh(xs, ys, val, contour_num=40, contour_line = False, cmap='turbo')
