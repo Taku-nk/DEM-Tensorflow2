@@ -158,8 +158,9 @@ class AnalysisDEM:
         self._build_dem()
     
         self.loss_obj = LossDEM()
-        self.optimizer = tf.keras.optimizers.Adam()
-
+        self.optimizer_adam = tf.keras.optimizers.Adam()
+        self.optimizer_sgd = tf.keras.optimizers.SGD(learning_rate=0.001, momentum=0.9)
+        self.iter_count = 0
         self.loss_history = []
 
 
@@ -167,24 +168,42 @@ class AnalysisDEM:
         """Train the model_dem
         """
         self.model_dem.compile(
-        optimizer=self.optimizer,
+        optimizer=self.optimizer_adam,
         loss=self.loss_obj
         )
 
         for epoch in range(epochs):
-            # Reset the metrics at the start of the next epoch
-            # train_loss.reset_states()
-            # train_accuracy.reset_states()
+            self.iter_count += 1
 
             self._train_step(input_data)
             
             pred_energy = self.model_dem.predict(input_data)
-            self.loss_history.append({'i':epoch+1, 'loss':pred_energy['total_energy'], 'id':0}) # 0 means adam, 1 means lbfgs
+            self._record_history(self.iter_count, pred_energy, self.optimizer_adam)
+            if (epoch+1) % 10 == 0:
+                self._print_training_result(epoch, pred_energy, self.optimizer_adam)
 
-            if epoch % 10 == 0:
-                print(f"Iter {epoch}: total_loss = {pred_energy['total_energy']}, int = {pred_energy['internal_energy']}, ext = {pred_energy['external_energy']}")
+        
+        # self.model_dem.compile(
+        # )
                 
         return
+    
+
+    def _print_training_result(self, epoch, pred_energy, optimizer):
+        """Output information during each traning.
+        """
+        print(f"Iter {epoch+1} ({optimizer.get_config()['name']}): total_loss = {pred_energy['total_energy']}, int = {pred_energy['internal_energy']}, ext = {pred_energy['external_energy']}")
+        return
+
+
+    def _record_history(self, iter_count, pred_energy, optimizer):
+        """Record loss history in self.loss_history list.
+        """
+        self.loss_history.append(
+            {'i':self.iter_count, 'loss':pred_energy['total_energy'], 'id':optimizer.get_config()['name']})
+        return
+
+
     
 
     def save_history(self, save_path):
@@ -239,5 +258,5 @@ class AnalysisDEM:
             pred_energy = self.model_dem(input_data, training=True)
             loss = self.loss_obj(dummy_label, pred_energy['total_energy'])
         gradients = tape.gradient(loss, self.model_dem.trainable_variables)
-        self.optimizer.apply_gradients(zip(gradients, self.model_dem.trainable_variables))
+        self.optimizer_adam.apply_gradients(zip(gradients, self.model_dem.trainable_variables))
         return
