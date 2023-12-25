@@ -171,9 +171,16 @@ class AnalysisDEM:
         self.loss_history = []
         self.analysis_summary = self._get_analysis_summary()
 
+
     def train(self, input_data, epochs_adam=1, epoch_sgd = 0):
         """Train the model_dem
         """
+        # save trainig configuration
+        self.analysis_summary['Epoches (Adam)'] = epochs_adam
+        self.analysis_summary['Epoches (SGD)'] = epoch_sgd
+        self.analysis_summary['Number of training points (internal)'] = int(input_data['X_int'].shape[1])
+        self.analysis_summary['Number of training points (boundary)'] = int(input_data['X_bnd'].shape[1])
+
         #----------------------------------------------
         # Adam training
         #----------------------------------------------
