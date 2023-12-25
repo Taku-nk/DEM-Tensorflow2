@@ -1,11 +1,18 @@
 import tensorflow as tf
 from loss_utils import loss_history_to_csv
 import numpy as np
+import json
+
 
 
 class LayerDNN(tf.keras.layers.Layer):
     def __init__(self, dnn_in=2, dnn_out=2, dnn_layers=[20, 20, 20]):
         super().__init__()
+
+        self.dnn_in = dnn_in
+        self.dnn_out = dnn_out
+        self.dnn_hidden_layers = dnn_layers
+
 
         self.hidden_layers = []
         for l in dnn_layers:
@@ -162,7 +169,7 @@ class AnalysisDEM:
         self.optimizer_sgd = tf.keras.optimizers.SGD(learning_rate=0.001, momentum=0.9)
         self.iter_count = 0
         self.loss_history = []
-
+        self.analysis_summary = self._get_analysis_summary()
 
     def train(self, input_data, epochs_adam=1, epoch_sgd = 0):
         """Train the model_dem
@@ -224,15 +231,34 @@ class AnalysisDEM:
 
     
 
-    def save_history(self, save_path):
+    def save_history(self, save_dir):
         """Save result
         Args:
             save_dir: Pathlib path. In this path the the result will be saved.
         """
-        loss_history_to_csv(loss_history=self.loss_history, save_path=save_path)
-
+        loss_history_to_csv(loss_history=self.loss_history, save_path=save_dir/'loss.csv')
+        
+        json_str = json.dumps(self.analysis_summary, indent=4)
+        with open(save_dir/'result_data.json', 'w') as f:
+            f.write(json_str)
         return
     
+
+    def _get_analysis_summary(self):
+        """Get analysis summary
+        Returns:
+            summary: dict. Dictionary of summary.
+        """
+        trainable_count = np.sum([tf.keras.backend.count_params(w) for w in self.model_dem.trainable_weights])
+
+        summary = {
+            'NN hidden layers': [int(i) for i in self.model_x_to_result.layer_disp_grad.layer_x_to_disp.dnn.dnn_hidden_layers],
+            'NN inputs': int(self.model_x_to_result.layer_disp_grad.layer_x_to_disp.dnn.dnn_in),
+            'NN outputs': int(self.model_x_to_result.layer_disp_grad.layer_x_to_disp.dnn.dnn_out),
+            'Trainable params': int(trainable_count),
+        }
+        return summary
+
 
     def predict(self, X):
         """Predict the result.

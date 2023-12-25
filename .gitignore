@@ -1,5 +1,6 @@
 # Project specific
 input/
+output/
 test*/
 *_bak/
 *.out
