@@ -164,7 +164,7 @@ class AnalysisDEM:
         self.loss_history = []
 
 
-    def train(self, input_data, epochs=1):
+    def train(self, input_data, epochs_adam=1, epoch_sgd = 0):
         """Train the model_dem
         """
         self.model_dem.compile(
@@ -172,10 +172,10 @@ class AnalysisDEM:
         loss=self.loss_obj
         )
 
-        for epoch in range(epochs):
+        for epoch in range(epochs_adam):
             self.iter_count += 1
 
-            self._train_step(input_data)
+            self._train_step_adam(input_data)
             
             pred_energy = self.model_dem.predict(input_data)
             self._record_history(self.iter_count, pred_energy, self.optimizer_adam)
@@ -183,8 +183,20 @@ class AnalysisDEM:
                 self._print_training_result(epoch, pred_energy, self.optimizer_adam)
 
         
-        # self.model_dem.compile(
-        # )
+        self.model_dem.compile(
+        optimizer=self.optimizer_sgd,
+        loss=self.loss_obj
+        )
+
+        for epoch in range(epoch_sgd):
+            self.iter_count += 1
+
+            self._train_step_sgd(input_data)
+            
+            pred_energy = self.model_dem.predict(input_data)
+            self._record_history(self.iter_count, pred_energy, self.optimizer_sgd)
+            if (epoch+1) % 10 == 0:
+                self._print_training_result(epoch, pred_energy, self.optimizer_sgd)
                 
         return
     
@@ -250,7 +262,7 @@ class AnalysisDEM:
   
 
     @tf.function
-    def _train_step(self, input_data):
+    def _train_step_adam(self, input_data):
         dummy_label = np.array(0.0, dtype=np.float32)
         with tf.GradientTape() as tape:
             # training=True is only needed if there are layers with different
@@ -259,4 +271,20 @@ class AnalysisDEM:
             loss = self.loss_obj(dummy_label, pred_energy['total_energy'])
         gradients = tape.gradient(loss, self.model_dem.trainable_variables)
         self.optimizer_adam.apply_gradients(zip(gradients, self.model_dem.trainable_variables))
+        return
+
+
+    # This training step function is code duplication and looks ugly code. 
+    # But in tensorflow, looks like you have to do it in this style because
+    # @tf.function is singleton.
+    @tf.function
+    def _train_step_sgd(self, input_data):
+        dummy_label = np.array(0.0, dtype=np.float32)
+        with tf.GradientTape() as tape:
+            # training=True is only needed if there are layers with different
+            # behavior during training versus inference (e.g. Dropout).
+            pred_energy = self.model_dem(input_data, training=True)
+            loss = self.loss_obj(dummy_label, pred_energy['total_energy'])
+        gradients = tape.gradient(loss, self.model_dem.trainable_variables)
+        self.optimizer_sgd.apply_gradients(zip(gradients, self.model_dem.trainable_variables))
         return

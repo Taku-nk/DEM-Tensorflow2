@@ -102,7 +102,7 @@ if __name__=='__main__':
     # DEM analysis
     # -------------------------------------
     analysis_dem = AnalysisDEM(layer_x_to_disp, E=1.0, nu=0.3)
-    analysis_dem.train(input_data=input_data, epochs=250)
+    analysis_dem.train(input_data=input_data, epochs_adam=250)
 
     analysis_dem.save_history(save_path=data_dir/'output/loss.csv')
 
