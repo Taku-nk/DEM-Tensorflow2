@@ -167,6 +167,9 @@ class AnalysisDEM:
     def train(self, input_data, epochs_adam=1, epoch_sgd = 0):
         """Train the model_dem
         """
+        #----------------------------------------------
+        # Adam training
+        #----------------------------------------------
         self.model_dem.compile(
         optimizer=self.optimizer_adam,
         loss=self.loss_obj
@@ -183,6 +186,9 @@ class AnalysisDEM:
                 self._print_training_result(epoch, pred_energy, self.optimizer_adam)
 
         
+        #----------------------------------------------
+        # SGD training
+        #----------------------------------------------
         self.model_dem.compile(
         optimizer=self.optimizer_sgd,
         loss=self.loss_obj
@@ -212,7 +218,7 @@ class AnalysisDEM:
         """Record loss history in self.loss_history list.
         """
         self.loss_history.append(
-            {'i':self.iter_count, 'loss':pred_energy['total_energy'], 'id':optimizer.get_config()['name']})
+            {'i':iter_count, 'loss':pred_energy['total_energy'], 'id':optimizer.get_config()['name']})
         return
 
 
