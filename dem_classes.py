@@ -2,6 +2,7 @@ import tensorflow as tf
 from loss_utils import loss_history_to_csv
 import numpy as np
 import json
+import time
 
 
 
@@ -168,6 +169,7 @@ class AnalysisDEM:
         self.optimizer_adam = tf.keras.optimizers.Adam()
         self.optimizer_sgd = tf.keras.optimizers.SGD(learning_rate=0.001, momentum=0.9)
         self.iter_count = 0
+        self.train_time = 0.0
         self.loss_history = []
         self.analysis_summary = self._get_analysis_summary()
 
@@ -181,6 +183,8 @@ class AnalysisDEM:
         self.analysis_summary['Number of training points (internal)'] = int(input_data['X_int'].shape[1])
         self.analysis_summary['Number of training points (boundary)'] = int(input_data['X_bnd'].shape[1])
 
+
+        train_start = time.time()
         #----------------------------------------------
         # Adam training
         #----------------------------------------------
@@ -217,7 +221,11 @@ class AnalysisDEM:
             self._record_history(self.iter_count, pred_energy, self.optimizer_sgd)
             if (epoch+1) % 10 == 0:
                 self._print_training_result(epoch, pred_energy, self.optimizer_sgd)
-                
+
+
+        train_end = time.time()
+        self.analysis_summary['Training time [s]'] = train_end-train_start
+        self.analysis_summary['Training time [min]'] = (train_end-train_start) / 60
         return
     
 
