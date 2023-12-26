@@ -193,6 +193,7 @@ class AnalysisDEM:
         loss=self.loss_obj
         )
 
+        self.train_time = time.time()
         for epoch in range(epochs_adam):
             self.iter_count += 1
 
@@ -202,6 +203,8 @@ class AnalysisDEM:
             self._record_history(self.iter_count, pred_energy, self.optimizer_adam)
             if (epoch+1) % 10 == 0:
                 self._print_training_result(epoch, pred_energy, self.optimizer_adam)
+                self.train_time = time.time()
+
 
         
         #----------------------------------------------
@@ -212,6 +215,7 @@ class AnalysisDEM:
         loss=self.loss_obj
         )
 
+        self.train_time = time.time()
         for epoch in range(epoch_sgd):
             self.iter_count += 1
 
@@ -221,6 +225,7 @@ class AnalysisDEM:
             self._record_history(self.iter_count, pred_energy, self.optimizer_sgd)
             if (epoch+1) % 10 == 0:
                 self._print_training_result(epoch, pred_energy, self.optimizer_sgd)
+                self.train_time = time.time()
 
 
         train_end = time.time()
@@ -232,7 +237,7 @@ class AnalysisDEM:
     def _print_training_result(self, epoch, pred_energy, optimizer):
         """Output information during each traning.
         """
-        print(f"Iter {epoch+1} ({optimizer.get_config()['name']}): total_loss = {pred_energy['total_energy']}, int = {pred_energy['internal_energy']}, ext = {pred_energy['external_energy']}")
+        print(f"Iter {epoch+1} ({optimizer.get_config()['name']}): total_loss = {pred_energy['total_energy']}, int = {pred_energy['internal_energy']}, ext = {pred_energy['external_energy']}, time: {time.time() - self.train_time:.3g} s")
         return
 
 
