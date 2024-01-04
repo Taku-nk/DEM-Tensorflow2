@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
-from loss_utils import loss_history_to_csv
+from utils.loss_utils import loss_history_to_csv
 from utils.data_classes import InputData
-from dem_classes import LayerDNN, ModelXToResult, ModelDEM, LossDEM, AnalysisDEM
+from utils.dem_classes import LayerDNN, ModelXToResult, ModelDEM, LossDEM, AnalysisDEM
 
 
 sys.path.append("/home/nakagawa/mylib/PythonCode/visualize_2D")

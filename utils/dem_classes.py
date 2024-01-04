@@ -1,5 +1,5 @@
 import tensorflow as tf
-from loss_utils import loss_history_to_csv
+from utils.loss_utils import loss_history_to_csv
 import numpy as np
 import json
 import time
