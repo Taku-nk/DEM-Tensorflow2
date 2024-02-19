@@ -11,9 +11,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import sys
-sys.path.append("/home/nakagawa/mylib/PythonCode/plot_2d")
-from plot_2d import FigPlot, clip_df
+from utils.plot_2d.plot_2d import FigPlot, clip_df
 
 
 

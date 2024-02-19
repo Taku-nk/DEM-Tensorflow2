@@ -10,12 +10,9 @@ from utils.data_classes import InputData
 from utils.dem_classes import LayerDNN, ModelXToResult, ModelDEM, LossDEM, AnalysisDEM
 
 
-sys.path.append("/home/nakagawa/mylib/PythonCode/visualize_2D")
-from visualize_DEM_2D import Visualize2DFormat as VizFormat
+from utils.visualize_2d.visualize_DEM_2D import Visualize2DFormat as VizFormat
+from utils.read_ansys_result.sample_result import ResultSampler
 
-sys.path.append(
-    "/home/nakagawa/mylib/PythonCode/ReadAnsysResult")
-from sample_result import ResultSampler
 
 
 

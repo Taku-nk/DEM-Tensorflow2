@@ -1,8 +1,5 @@
 
 """
-    import sys
-    sys.path.append("C:\\Users\\taku\\Hiroshima-U-Master\\OneDrive - Hiroshima University\\ドキュメント\\1kouza\\MasterResearch\\PythonCode\\ReadExcel2D")
- 
     from VizExcel import ExcelViewer, PlotExcel
 
     file_path = '../results.xlsx'

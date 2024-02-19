@@ -5,9 +5,7 @@ The data shape as to be xs, ys, vs. Usage is similar to plt.scatter(xs, ys, c=vs
 """
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
-sys.path.append("/home/nakagawa/mylib/PythonCode/visualize_2D")
-from visualize_DEM_2D import Visualize2DFormat as VizFormat
+from utils.visualize_2d.visualize_DEM_2D import Visualize2DFormat as VizFormat
 
 
 import pandas as pd
