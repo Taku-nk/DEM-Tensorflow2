@@ -1,12 +1,12 @@
 # Project specific
-input/
+# input/
 output/
 test*/
 *_bak/
 *.out
 *.pptx
 *.pdf
-*.csv
+# *.csv
 bak/
 
 # Byte-compiled / optimized / DLL files
