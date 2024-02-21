@@ -22,3 +22,7 @@ Also needs following Python modules.
 1. Prepare input .csv file in "analysis_data"
 2. Run `python dem_analysis_crack.py` for center crack analysis. Or run `python dem_analysis.py` for simple tensile analysis without crack.
 3. You can found the result under "analysis_data"
+
+Note.
+- If you want to use custom model, then refer to 'PythonScript'.
+- If you want to visualize the result, then refer to 'Post_DEM_Example'
